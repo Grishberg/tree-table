@@ -28,6 +28,6 @@ allprojects {
 **Step 2.** Add the dependency
 ```
 dependencies {
-	    implementation 'com.github.Grishberg:tree-table:Tag'
+	    implementation 'com.github.Grishberg:tree-table:{version}'
 }
 ```
