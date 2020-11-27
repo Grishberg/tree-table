@@ -41,6 +41,7 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.tree.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.util.EventObject;
 
@@ -98,6 +99,71 @@ public class JTreeTable extends JTable {
 
         // Install a tableModel representing the visible rows in the tree.
         super.setModel(new TreeTableModelAdapter(treeTableModel, tree));
+    }
+
+    /**
+     * overridden to support keyboard expand/collapse for the tree.
+     */
+    protected boolean processKeyBinding(KeyStroke ks,
+                                        KeyEvent e,
+                                        int condition,
+                                        boolean pressed) {
+        if (condition == JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT) {
+            if (tree != null && !isEditing()) {
+                if (e.getID() == KeyEvent.KEY_PRESSED) {
+                    if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+                        int row = getSelectedRow();
+                        if (row >= 0) {
+                            TreePath pathForRow = tree.getPathForRow(row);
+                            // if selected node is expanded than collapse it
+                            // else selected parents node
+                            if (tree.isExpanded(pathForRow)) {
+                                // only if root is visible we should collapse first level
+                                final boolean canCollapse = pathForRow.getPathCount() > (tree.isRootVisible() ? 0 : 1);
+                                if (canCollapse) {
+                                    tree.collapsePath(pathForRow);
+                                    selectNode(pathForRow);
+                                }
+                            } else {
+                                // only if root is visible we should collapse first level or select parent node
+                                final boolean canCollapse = pathForRow.getPathCount() > (tree.isRootVisible() ? 1 : 2);
+
+                                if (canCollapse) {
+                                    pathForRow = pathForRow.getParentPath();
+                                    final int parentRow = tree.getRowForPath(pathForRow);
+                                    tree.setSelectionInterval(parentRow, parentRow);
+                                    selectNode(pathForRow);
+                                }
+                            }
+
+                            if (pathForRow != null) {
+                                Rectangle rect = getCellRect(tree.getRowForPath(pathForRow), 0, false);
+                                scrollRectToVisible(rect);
+                            }
+                        }
+                        return true;
+                    }
+                    if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                        int row = getSelectedRow();
+                        if (row >= 0) {
+                            final TreePath path = tree.getPathForRow(row);
+                            if (tree.isCollapsed(path)) {
+                                tree.expandPath(path);
+                                selectNode(path);
+                            }
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        // reset cachedkey to null if we did not find anything
+
+        return super.processKeyBinding(ks, e, condition, pressed);
+    }
+
+    private void selectNode(TreePath pathForRow) {
+        tree.setSelectionPath(pathForRow);
     }
 
     /**
